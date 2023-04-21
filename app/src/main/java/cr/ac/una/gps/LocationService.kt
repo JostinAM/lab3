@@ -12,6 +12,14 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
+import cr.ac.una.gps.dao.UbicacionDao
+import cr.ac.una.gps.db.AppDatabase
+import cr.ac.una.gps.entity.Ubicacion
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.*
 import kotlin.system.exitProcess
 
 class LocationService : Service() {
@@ -19,21 +27,39 @@ class LocationService : Service() {
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
 
+    //private lateinit var ubicacionDao: UbicacionDao
+
     override fun onCreate() {
         super.onCreate()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
+        //ubicacionDao = AppDatabase.getInstance(this).ubicacionDao()
         locationListener = object : LocationListener {
+            // guardar y poner punto
+            // en cada boot find all y pone los puntos
             override fun onLocationChanged(location: Location) {
                 // Enviar la ubicación a través de un broadcast
                 val intent = Intent("ubicacionActualizada")
                 intent.putExtra("latitud", location.latitude)
                 intent.putExtra("longitud", location.longitude)
                 sendBroadcast(intent)
+
+                val entity = Ubicacion(
+                    id = null,
+                    latitud = location.latitude,
+                    longitud = location.longitude,
+                    fecha = Date()
+                )
+
+               // insertEntity(entity)
+
+
+
             }
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
         }
     }
+
+
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

@@ -15,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.registerReceiver
+import androidx.lifecycle.lifecycleScope
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -22,9 +23,19 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import cr.ac.una.gps.dao.UbicacionDao
+import cr.ac.una.gps.db.AppDatabase
+import cr.ac.una.gps.entity.Ubicacion
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.*
 
 class MapsFragment : Fragment() {
+    private lateinit var map: GoogleMap
+
     private lateinit var locationReceiver: BroadcastReceiver
+    private lateinit var ubicacionDao: UbicacionDao
 
 
     private val callback = OnMapReadyCallback { googleMap ->
@@ -41,6 +52,7 @@ class MapsFragment : Fragment() {
         val sydney = LatLng(-34.0, 151.0)
         googleMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+        map = googleMap
 
     }
 
@@ -57,11 +69,26 @@ class MapsFragment : Fragment() {
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
         mapFragment?.getMapAsync(callback)
         iniciaServicio()
+        ubicacionDao = AppDatabase.getInstance(this).ubicacionDao()
+        //poner en el mapa
         locationReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val latitud = intent?.getDoubleExtra("latitud", 0.0) ?: 0.0
                 val longitud = intent?.getDoubleExtra("longitud", 0.0) ?: 0.0
                 println(latitud.toString() +"    " +longitud)
+
+                val entity = Ubicacion(
+                    id = null,
+                    latitud = latitud,
+                    longitud = longitud,
+                    fecha = Date()
+                )
+
+                insertEntity(entity)
+
+
+
+
 
             }
         }
@@ -69,6 +96,8 @@ class MapsFragment : Fragment() {
 
 
     }
+
+
     override fun onResume() {
         super.onResume()
         // Registrar el receptor para recibir actualizaciones de ubicación
@@ -103,6 +132,15 @@ class MapsFragment : Fragment() {
 
         }
 
+
+    }
+
+    private fun insertEntity(entity: Ubicacion) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                ubicacionDao.insert(entity)
+            }
+        }
 
     }
 }
