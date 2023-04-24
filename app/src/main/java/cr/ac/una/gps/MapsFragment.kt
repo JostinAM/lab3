@@ -6,15 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.location.Location
 import androidx.fragment.app.Fragment
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat.registerReceiver
 import androidx.lifecycle.lifecycleScope
 
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -37,7 +36,6 @@ class MapsFragment : Fragment() {
     private lateinit var locationReceiver: BroadcastReceiver
     private lateinit var ubicacionDao: UbicacionDao
 
-
     private val callback = OnMapReadyCallback { googleMap ->
         /**
          * Manipulates the map once available.
@@ -49,10 +47,12 @@ class MapsFragment : Fragment() {
          * user has installed Google Play services and returned to the app.
          */
 
-        val sydney = LatLng(-34.0, 151.0)
-        googleMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+//        val sydney = LatLng(-34.0, 151.0)
+//        googleMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
+//        googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
         map = googleMap
+
+        loadMarkers(googleMap)
 
     }
 
@@ -61,21 +61,35 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.fragment_maps, container, false)
+
+        val view = inflater.inflate(R.layout.fragment_maps, container, false)
+
+//        var ubicaciones: List<Ubicacion> = listOf()
+
+
+        return view
+
+
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
         mapFragment?.getMapAsync(callback)
+
         iniciaServicio()
-        ubicacionDao = AppDatabase.getInstance(this).ubicacionDao()
+//        ubicacionDao = AppDatabase.getInstance(this).ubicacionDao()
         //poner en el mapa
+
+
+
         locationReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val latitud = intent?.getDoubleExtra("latitud", 0.0) ?: 0.0
                 val longitud = intent?.getDoubleExtra("longitud", 0.0) ?: 0.0
                 println(latitud.toString() +"    " +longitud)
+                Log.d("insert", latitud.toString() +"    " +longitud)
+
 
                 val entity = Ubicacion(
                     id = null,
@@ -86,8 +100,8 @@ class MapsFragment : Fragment() {
 
                 insertEntity(entity)
 
-
-
+                map.addMarker(MarkerOptions().position(LatLng(latitud, longitud)).title("Marker"))
+                map.moveCamera(CameraUpdateFactory.newLatLng(LatLng(latitud, longitud)))
 
 
             }
@@ -95,6 +109,11 @@ class MapsFragment : Fragment() {
         context?.registerReceiver(locationReceiver, IntentFilter("ubicacionActualizada"))
 
 
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        ubicacionDao = AppDatabase.getInstance(this).ubicacionDao()
     }
 
 
@@ -127,12 +146,7 @@ class MapsFragment : Fragment() {
         } else {
             val intent = Intent(context, LocationService::class.java)
             context?.startService(intent)
-
-
-
         }
-
-
     }
 
     private fun insertEntity(entity: Ubicacion) {
@@ -141,6 +155,20 @@ class MapsFragment : Fragment() {
                 ubicacionDao.insert(entity)
             }
         }
-
     }
+
+    private fun loadMarkers(googleMap: GoogleMap) {
+
+        lifecycleScope.launch {
+            val ubicaciones = withContext(Dispatchers.IO) {
+                ubicacionDao.getAll()
+            }
+
+            ubicaciones.forEach {
+                googleMap.addMarker(MarkerOptions().position(LatLng(it.latitud, it.longitud)).title("Marker"))
+                Log.d("getAll", it.latitud.toString() +"    " +it.longitud)
+            }
+        }
+    }
+
 }

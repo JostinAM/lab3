@@ -11,6 +11,6 @@ interface UbicacionDao {
     @Insert
     fun insert(entity: Ubicacion)
 
-    @Query("SELECT * FROM ubicacion")
-    fun getAll(): List<Ubicacion?>?
+    @Query("SELECT * FROM Ubicacion")
+    fun getAll(): List<Ubicacion>
 }
