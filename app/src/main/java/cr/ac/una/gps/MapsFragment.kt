@@ -22,6 +22,9 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.Polygon
+import com.google.android.gms.maps.model.PolygonOptions
+import com.google.maps.android.PolyUtil
 import cr.ac.una.gps.dao.UbicacionDao
 import cr.ac.una.gps.db.AppDatabase
 import cr.ac.una.gps.entity.Ubicacion
@@ -35,6 +38,9 @@ class MapsFragment : Fragment() {
 
     private lateinit var locationReceiver: BroadcastReceiver
     private lateinit var ubicacionDao: UbicacionDao
+
+    //lunes 24
+    private lateinit var polygon: Polygon
 
     private val callback = OnMapReadyCallback { googleMap ->
         /**
@@ -51,7 +57,7 @@ class MapsFragment : Fragment() {
 //        googleMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
 //        googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
         map = googleMap
-
+        polygon = createPolygon()
         loadMarkers(googleMap)
 
     }
@@ -65,6 +71,7 @@ class MapsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_maps, container, false)
 
 //        var ubicaciones: List<Ubicacion> = listOf()
+
 
 
         return view
@@ -83,6 +90,7 @@ class MapsFragment : Fragment() {
 
 
 
+
         locationReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val latitud = intent?.getDoubleExtra("latitud", 0.0) ?: 0.0
@@ -95,7 +103,8 @@ class MapsFragment : Fragment() {
                     id = null,
                     latitud = latitud,
                     longitud = longitud,
-                    fecha = Date()
+                    fecha = Date(),
+                    estaEnPoligono = isLocationInsidePolygon(LatLng(latitud, longitud))
                 )
 
                 insertEntity(entity)
@@ -107,6 +116,7 @@ class MapsFragment : Fragment() {
             }
         }
         context?.registerReceiver(locationReceiver, IntentFilter("ubicacionActualizada"))
+
 
 
     }
@@ -169,6 +179,24 @@ class MapsFragment : Fragment() {
                 Log.d("getAll", it.latitud.toString() +"    " +it.longitud)
             }
         }
+    }
+
+    private fun createPolygon(): Polygon {
+        //en vez de quemado anadir poligono
+        val polygonOptions = PolygonOptions()
+        polygonOptions.add(LatLng(-14.0095923,108.8152324))
+        polygonOptions.add(LatLng( -43.3897529,104.2449199))
+        polygonOptions.add(LatLng( -51.8906238,145.7292949))
+        polygonOptions.add(LatLng( -31.7289525,163.3074199))
+        polygonOptions.add(LatLng( -7.4505398,156.2761699))
+        polygonOptions.add(LatLng( -14.0095923,108.8152324))
+        return map.addPolygon(polygonOptions)
+
+
+    }
+
+    private fun isLocationInsidePolygon(location: LatLng): Boolean {
+        return polygon != null && PolyUtil.containsLocation(location, polygon?.points, true)
     }
 
 }

@@ -43,13 +43,6 @@ class LocationService : Service() {
                 intent.putExtra("longitud", location.longitude)
                 sendBroadcast(intent)
 
-                val entity = Ubicacion(
-                    id = null,
-                    latitud = location.latitude,
-                    longitud = location.longitude,
-                    fecha = Date()
-                )
-
                // insertEntity(entity)
 
 
